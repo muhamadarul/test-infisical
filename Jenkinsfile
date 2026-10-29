@@ -55,6 +55,20 @@ pipeline {
             }
         }
 
+        stage('Check Go') {
+            steps {
+                sh '''
+                    set -e
+                    if ! command -v go >/dev/null 2>&1; then
+                        echo "Go belum terpasang, install via apt..."
+                        apt-get update
+                        apt-get install -y golang-go
+                    fi
+                    go version
+                '''
+            }
+        }
+
         stage('Run Go App with Infisical') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'INFISICAL_CREDENTIALS', usernameVariable: 'CLIENT_ID', passwordVariable: 'CLIENT_SECRET')]) {
