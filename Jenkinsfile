@@ -1,30 +1,37 @@
 pipeline {
     agent any
 
+    // Parameter diambil dari UI Jenkins yang Anda atur di gambar
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Pilih Environment Target')
+    }
+
     environment {
+        // Port Infisical disesuaikan dengan setup lokal Anda (8078 / 8080)
         INFISICAL_HOST_URL = 'http://host.docker.internal:8078'
     }
 
     stages {
-        stage('Detect Branch & Set Environment') {
+        stage('Set Environment Config') {
             steps {
                 script {
-                    // Ambil nama branch yang sedang di-build
-                    // GIT_BRANCH biasanya bernilai 'origin/main' atau 'origin/staging'
-                    def currentBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: ''
-                    
-                    echo "Branch yang sedang di-build: ${currentBranch}"
+                    // Membaca langsung dari parameter UI Jenkins (params.ENVIRONMENT)
+                    def selectedEnv = params.ENVIRONMENT ?: 'dev'
+                    echo "Environment terpilih dari UI: ${selectedEnv}"
 
-                    if (currentBranch.contains('main') || currentBranch.contains('master')) {
-                        env.INFISICAL_PROJECT_ID = 'a779a216-3ecd-47fb-b552-061e78c3cd26'
-                        env.TARGET_ENV           = 'prod'
-                    } else if (currentBranch.contains('staging')) {
-                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_STAGING_ANDA'
-                        env.TARGET_ENV           = 'staging'
-                    } else {
-                        // Default / Fallback ke Dev
-                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_DEV_ANDA'
-                        env.TARGET_ENV           = 'dev'
+                    switch(selectedEnv) {
+                        case 'prod':
+                            env.INFISICAL_PROJECT_ID = 'a779a216-3ecd-47fb-b552-061e78c3cd26'
+                            env.TARGET_ENV           = 'prod'
+                            break
+                        case 'staging':
+                            env.INFISICAL_PROJECT_ID = 'ID_PROJECT_STAGING_ANDA'
+                            env.TARGET_ENV           = 'staging'
+                            break
+                        default: // dev
+                            env.INFISICAL_PROJECT_ID = 'ID_PROJECT_DEV_ANDA'
+                            env.TARGET_ENV           = 'dev'
+                            break
                     }
 
                     echo "Menggunakan Infisical Project ID: ${env.INFISICAL_PROJECT_ID} [Env: ${env.TARGET_ENV}]"
@@ -43,7 +50,7 @@ pipeline {
                             --domain="$INFISICAL_HOST_URL" \
                             --silent --plain)
 
-                        # 2. Run Go app sesuai Project ID dan Env dinamis
+                        # 2. Run Go app dengan Project ID dan Target Env sesuai pilihan UI
                         infisical run \
                             --projectId="$INFISICAL_PROJECT_ID" \
                             --env="$TARGET_ENV" \
