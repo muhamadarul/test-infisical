@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        INFISICAL_HOST_URL = 'http://host.docker.internal:8080'
+        INFISICAL_HOST_URL = 'http://host.docker.internal:8078'
     }
 
     stages {
