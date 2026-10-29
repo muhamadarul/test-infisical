@@ -38,16 +38,18 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Install Infisical CLI') {
             steps {
                 sh '''
-                    # Cek apakah Infisical CLI sudah terinstall, jika belum lakukan install
                     if ! command -v infisical &> /dev/null; then
-                        echo "Infisical CLI belum ada, menginstall..."
-                        curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash
-                        apt-get update && apt-get install -y infisical
+                        echo "Downloading Infisical CLI binary..."
+                        curl -1sLf 'https://github.com/Infisical/infisical/releases/latest/download/infisical_linux_amd64.tar.gz' -o infisical.tar.gz
+                        tar -xzf infisical.tar.gz -C /usr/local/bin infisical
+                        rm infisical.tar.gz
+                        chmod +x /usr/local/bin/infisical
                     fi
+                    infisical --version
                 '''
             }
         }
