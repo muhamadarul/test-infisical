@@ -1,25 +1,33 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Pilih Environment Deployment')
-    }
-
     environment {
         INFISICAL_HOST_URL = 'http://host.docker.internal:8080'
     }
 
     stages {
-        stage('Set Environment Config') {
+        stage('Detect Branch & Set Environment') {
             steps {
                 script {
-                    if (params.ENVIRONMENT == 'prod') {
-                        env.INFISICAL_PROJECT_ID = 'a779a216-3ecd-47fb-b552-061e78c3cd26'
-                    } else if (params.ENVIRONMENT == 'staging') {
-                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_AUTH_STAGING'
+                    // Ambil nama branch yang sedang di-build
+                    // GIT_BRANCH biasanya bernilai 'origin/main' atau 'origin/staging'
+                    def currentBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: ''
+                    
+                    echo "Branch yang sedang di-build: ${currentBranch}"
+
+                    if (currentBranch.contains('main') || currentBranch.contains('master')) {
+                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_PROD_ANDA'
+                        env.TARGET_ENV           = 'prod'
+                    } else if (currentBranch.contains('staging')) {
+                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_STAGING_ANDA'
+                        env.TARGET_ENV           = 'staging'
                     } else {
-                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_AUTH_DEV'
+                        // Default / Fallback ke Dev
+                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_DEV_ANDA'
+                        env.TARGET_ENV           = 'dev'
                     }
+
+                    echo "Menggunakan Infisical Project ID: ${env.INFISICAL_PROJECT_ID} [Env: ${env.TARGET_ENV}]"
                 }
             }
         }
@@ -28,15 +36,17 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'INFISICAL_CREDENTIALS', usernameVariable: 'CLIENT_ID', passwordVariable: 'CLIENT_SECRET')]) {
                     sh '''
+                        # 1. Login Universal Auth
                         export INFISICAL_TOKEN=$(infisical login --method=universal-auth \
                             --client-id="$CLIENT_ID" \
                             --client-secret="$CLIENT_SECRET" \
                             --domain="$INFISICAL_HOST_URL" \
                             --silent --plain)
 
+                        # 2. Run Go app sesuai Project ID dan Env dinamis
                         infisical run \
                             --projectId="$INFISICAL_PROJECT_ID" \
-                            --env="$ENVIRONMENT" \
+                            --env="$TARGET_ENV" \
                             --domain="$INFISICAL_HOST_URL" \
                             -- go run main.go
                     '''
