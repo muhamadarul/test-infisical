@@ -16,7 +16,7 @@ pipeline {
                     echo "Branch yang sedang di-build: ${currentBranch}"
 
                     if (currentBranch.contains('main') || currentBranch.contains('master')) {
-                        env.INFISICAL_PROJECT_ID = 'ID_PROJECT_PROD_ANDA'
+                        env.INFISICAL_PROJECT_ID = 'a779a216-3ecd-47fb-b552-061e78c3cd26'
                         env.TARGET_ENV           = 'prod'
                     } else if (currentBranch.contains('staging')) {
                         env.INFISICAL_PROJECT_ID = 'ID_PROJECT_STAGING_ANDA'
