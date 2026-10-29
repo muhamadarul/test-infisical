@@ -73,6 +73,8 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'INFISICAL_CREDENTIALS', usernameVariable: 'CLIENT_ID', passwordVariable: 'CLIENT_SECRET')]) {
                     sh '''
+                        set -e
+
                         # 1. Login Universal Auth
                         export INFISICAL_TOKEN=$(infisical login --method=universal-auth \
                             --client-id="$CLIENT_ID" \
@@ -80,7 +82,16 @@ pipeline {
                             --domain="$INFISICAL_HOST_URL" \
                             --silent --plain)
 
-                        # 2. Run Go app dengan Project ID dan Target Env sesuai pilihan UI
+                        # 2. Ambil NAMA key saja dari Infisical (tanpa nilainya), pisahkan dengan koma
+                        export INFISICAL_KEYS=$(infisical export \
+                            --projectId="$INFISICAL_PROJECT_ID" \
+                            --env="$TARGET_ENV" \
+                            --domain="$INFISICAL_HOST_URL" \
+                            --format=dotenv | cut -d= -f1 | paste -sd, -)
+
+                        echo "Key dari Infisical: $INFISICAL_KEYS"
+
+                        # 3. Run Go app dengan Project ID dan Target Env sesuai pilihan UI
                         infisical run \
                             --projectId="$INFISICAL_PROJECT_ID" \
                             --env="$TARGET_ENV" \
