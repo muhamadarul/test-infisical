@@ -43,11 +43,16 @@ pipeline {
             steps {
                 sh '''
                     if ! command -v infisical &> /dev/null; then
-                        echo "Downloading Infisical CLI binary..."
-                        curl -1sLf 'https://github.com/Infisical/infisical/releases/latest/download/infisical_linux_amd64.tar.gz' -o infisical.tar.gz
-                        tar -xzf infisical.tar.gz -C /usr/local/bin infisical
-                        rm infisical.tar.gz
-                        chmod +x /usr/local/bin/infisical
+                        echo "Installing Infisical CLI..."
+                        # Menggunakan official installer script infisical
+                        curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash
+                        # Mengabaikan kegagalan repo trixie dengan mendownload paket deb secara presisi jika apt fail
+                        apt-get update || true
+                        apt-get install -y infisical || (
+                            curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/raw/names/infisical-cli-deb/versions/latest/infisical_amd64.deb' -o infisical.deb && \
+                            dpkg -i infisical.deb && \
+                            rm infisical.deb
+                        )
                     fi
                     infisical --version
                 '''
